@@ -3,7 +3,6 @@ package co.superiortech.hostseditor;
 import co.superiortech.hostseditor.model.HostsRecord;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,8 +19,11 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.util.StringConverter;
 
 public class FXMLController implements Initializable {
 
@@ -62,7 +64,27 @@ public class FXMLController implements Initializable {
         this.colAddresses.setCellFactory(TextFieldTableCell.forTableColumn());
         this.colNames.setCellFactory(TextFieldTableCell.forTableColumn());
 
+        this.colAddresses.setOnEditCommit((TableColumn.CellEditEvent<HostsRecord, String> c) -> {
+            c.getRowValue().setIpAddress(c.getNewValue());
+        });
+        this.colNames.setOnEditCommit((TableColumn.CellEditEvent<HostsRecord, String> c) -> {
+            c.getRowValue().setHostname(c.getNewValue());
+        });
+
         //table Events and data population
+        this.tblRecords.getSelectionModel().setCellSelectionEnabled(true);
+
+        this.tblRecords.setOnKeyPressed((KeyEvent c) -> {
+            if (c.getCode() == KeyCode.TAB) {
+                c.consume();
+                if (c.isShiftDown()) {
+                    FXMLController.this.tblRecords.getSelectionModel().selectPrevious();
+                } else {
+                    FXMLController.this.tblRecords.getSelectionModel().selectNext();
+                }
+            }
+        });
+
         this.tblRecords.addEventHandler(MouseEvent.MOUSE_CLICKED, (MouseEvent evt) -> {
             if (evt.getButton() == MouseButton.SECONDARY) {
                 cmTableMenu.show(tblRecords, evt.getScreenX(), evt.getScreenY());
@@ -99,7 +121,7 @@ public class FXMLController implements Initializable {
     }
 
     private void addRow() {
-        this.tblRecords.getItems().add(new HostsRecord("127.0.0.1","localhost"));        
+        this.tblRecords.getItems().add(new HostsRecord("127.0.0.1", "localhost"));
     }
 
     private void deleteRow() {

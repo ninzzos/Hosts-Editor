@@ -24,7 +24,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 
 /**
@@ -41,7 +41,7 @@ public class HostsFile {
 
     public HostsFile() {
         this.hostsFile = new File(this.location);
-        this.hostsBackup = new File(this.location + ".bak");        
+        this.hostsBackup = new File(this.location.concat(".bak"));
     }
 
     public ArrayList<HostsRecord> getHostRecords() throws IOException {
@@ -64,39 +64,29 @@ public class HostsFile {
     }
 
     public void saveHostRecords(List<HostsRecord> records, boolean keepBackup) throws FileNotFoundException, IOException {
-        String tmp = null;
+        
+        if (keepBackup) {
+            if (!this.hostsBackup.exists()) {
+                System.out.println("Bakcup file doesn't exists!");
+                if (this.hostsBackup.createNewFile()) {
+                    System.out.println("Backup file has been created");
+                }
+            }
+            FileUtils.copyFile(new File(this.location), this.hostsBackup);
+        }
         try (FileReader reader = new FileReader(this.hostsFile);
-                BufferedReader br = new BufferedReader(reader);
                 BufferedWriter bw = new BufferedWriter(new FileWriter(this.hostsFile));) {
 
-            if (keepBackup) {
-                try (BufferedReader originalReader = new BufferedReader(new FileReader(this.hostsFile));
-                        BufferedWriter copyWriter = new BufferedWriter(new FileWriter(this.hostsBackup));) {                        
-                    int result = IOUtils.copy(originalReader, copyWriter);
-                    System.out.println("Copied amount of bytes: "+ result);
-                }
-            }
-
-            ArrayList<HostsRecord> currentRecords = new ArrayList<>();
-
-            while ((tmp = br.readLine()) != null) {
-                if (tmp.startsWith("#") || tmp.startsWith(":")) {
-                    bw.append(tmp);
-                    bw.append("\n");
-                } else {
-                    String[] pieces = tmp.split("\t");
-                    if (pieces.length == 2) {
-                        currentRecords.add(new HostsRecord(pieces[0], pieces[1]));
-                    }
-                }
-            }
+            ArrayList<HostsRecord> currentRecords = this.getHostRecords();
+            String tmp = null;
+            
             for (HostsRecord record : records) {
                 tmp = record.getIpAddress() + "\t" + record.getHostname();
-                System.out.println("Writing: "+tmp);
-                bw.write(tmp);                
+                bw.write(tmp);
                 bw.write("\n");
-                
+
             }
+            System.out.println(currentRecords.size());             
             if (currentRecords.containsAll(records)) {
                 System.out.println("No changes!");
             }
