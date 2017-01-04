@@ -37,9 +37,11 @@ public class HostsFile {
 
     private final String location = SystemUtils.IS_OS_WINDOWS ? "C:\\windows\\system32\\drivers\\etc\\hosts" : "/etc/hosts";
     private final File hostsFile;
+    private final File hostsBackup;
 
     public HostsFile() {
         this.hostsFile = new File(this.location);
+        this.hostsBackup = new File(this.location + ".bak");        
     }
 
     public ArrayList<HostsRecord> getHostRecords() throws IOException {
@@ -68,9 +70,10 @@ public class HostsFile {
                 BufferedWriter bw = new BufferedWriter(new FileWriter(this.hostsFile));) {
 
             if (keepBackup) {
-                try (FileWriter copy = new FileWriter(new File(this.location + ".bak"));) {
-                    IOUtils.copy(reader, copy);
-                    reader.reset();
+                try (BufferedReader originalReader = new BufferedReader(new FileReader(this.hostsFile));
+                        BufferedWriter copyWriter = new BufferedWriter(new FileWriter(this.hostsBackup));) {                        
+                    int result = IOUtils.copy(originalReader, copyWriter);
+                    System.out.println("Copied amount of bytes: "+ result);
                 }
             }
 
@@ -87,13 +90,15 @@ public class HostsFile {
                     }
                 }
             }
-            
-            if (!currentRecords.containsAll(records)) {
-                for (HostsRecord record : records) {
-                    tmp = record.getIpAddress() + "\t" + record.getHostname();
-                    bw.append(tmp);
-                    bw.append("\n");
-                }
+            for (HostsRecord record : records) {
+                tmp = record.getIpAddress() + "\t" + record.getHostname();
+                System.out.println("Writing: "+tmp);
+                bw.write(tmp);                
+                bw.write("\n");
+                
+            }
+            if (currentRecords.containsAll(records)) {
+                System.out.println("No changes!");
             }
         }
     }
